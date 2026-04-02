@@ -1,8 +1,9 @@
 #!/bin/bash
+set -e
 
 echo "Starting app..."
 
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 
-python manage.py runserver 0.0.0.0:$PORT
+gunicorn dashboard_project.wsgi:application --bind 0.0.0.0:${PORT:-8000}

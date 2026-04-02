@@ -14,16 +14,25 @@ def split_env_list(name, default=''):
     return [item.strip() for item in os.environ.get(name, default).split(',') if item.strip()]
 
 
+def normalize_origin(value):
+    value = value.strip().rstrip('/')
+    if not value:
+        return ''
+    if '://' not in value:
+        return f'https://{value}'
+    return value
+
+
 def collect_public_urls():
     urls = []
     for name in ('APP_URL', 'PUBLIC_URL', 'RAILWAY_STATIC_URL'):
         value = os.environ.get(name, '').strip()
         if value:
-            urls.append(value.rstrip('/'))
+            urls.append(normalize_origin(value))
 
     railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '').strip()
     if railway_domain:
-        urls.append(f'https://{railway_domain}')
+        urls.append(normalize_origin(railway_domain))
 
     return urls
 
@@ -56,10 +65,13 @@ default_csrf_trusted_origins = [
     'http://127.0.0.1',
     'https://*.railway.app',
 ]
-CSRF_TRUSTED_ORIGINS = split_env_list(
-    'CSRF_TRUSTED_ORIGINS',
-    ','.join(default_csrf_trusted_origins),
-)
+CSRF_TRUSTED_ORIGINS = [
+    normalize_origin(origin)
+    for origin in split_env_list(
+        'CSRF_TRUSTED_ORIGINS',
+        ','.join(default_csrf_trusted_origins),
+    )
+]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 CSRF_COOKIE_SECURE = not DEBUG
