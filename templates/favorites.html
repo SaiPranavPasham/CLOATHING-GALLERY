@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block sidebar %}
+<div class="sidebar-section">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #a76e46 0%, #5e361f 100%); border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 30px;">U</div>
+        <h2 style="margin: 0 0 8px 0; color: #F5F5F5;">{{ request.user.username }}</h2>
+        <p class="muted" style="margin: 0;">Favorites room</p>
+    </div>
+</div>
+
+<div class="sidebar-section">
+    <h3>Menu</h3>
+    <a class="sidebar-link" href="{% url 'gallery' %}">My Gallery</a>
+    <a class="sidebar-link" href="{% url 'my_fashion' %}">Add Photos</a>
+    <a class="sidebar-link" href="{% url 'favorites' %}">Favorites</a>
+    <a class="sidebar-link" href="{% url 'wishlist' %}">Wishlist</a>
+    <a class="sidebar-link" href="{% url 'logout' %}">Logout</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-content">
+    <div class="info-card" style="margin-bottom: 24px;">
+        <h3 style="margin: 0 0 15px 0; color: #F5F5F5;">Favorites</h3>
+        <p class="muted" style="margin-top: 0;">This page shows only the gallery photos you marked with the heart icon.</p>
+    </div>
+
+    {% if outfits %}
+    <div class="favorites-grid">
+        {% for outfit in outfits %}
+        <div class="favorite-item">
+            <span class="favorite-tag">{{ outfit.created_at|date:'M d' }}</span>
+            <h4 style="margin: 0 0 8px 0; color: #F5F5F5;">{{ outfit.title }}</h4>
+            <p class="muted" style="margin: 0 0 12px 0;">{{ outfit.description|default:'No description added yet.'|truncatechars:110 }}</p>
+            <a class="button-link" href="{% url 'gallery' %}">Open in Gallery</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="info-card empty-state">
+        <h3 style="margin-top: 0; color: #F5F5F5;">No favorite looks yet.</h3>
+        <p class="muted">Tap the heart icon on any photo in your gallery and it will appear here.</p>
+        <a class="button-link" href="{% url 'gallery' %}">Open Gallery</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

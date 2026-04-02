@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block sidebar %}
+<div class="sidebar-section">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #a76e46 0%, #5e361f 100%); border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 30px;">U</div>
+        <h2 style="margin: 0 0 8px 0; color: #F5F5F5;">{{ request.user.username }}</h2>
+        <p class="muted" style="margin: 0;">Wishlist room</p>
+    </div>
+</div>
+
+<div class="sidebar-section">
+    <h3>Menu</h3>
+    <a class="sidebar-link" href="{% url 'gallery' %}">My Gallery</a>
+    <a class="sidebar-link" href="{% url 'my_fashion' %}">Add Photos</a>
+    <a class="sidebar-link" href="{% url 'favorites' %}">Favorites</a>
+    <a class="sidebar-link" href="{% url 'wishlist' %}">Wishlist</a>
+    <a class="sidebar-link" href="{% url 'logout' %}">Logout</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-content">
+    <div class="hero-panel">
+        <div class="info-card hero-banner">
+            <p style="margin: 0 0 10px 0; color: #d8b79d; text-transform: uppercase; letter-spacing: 0.16em; font-size: 12px;">Wishlist</p>
+            <h1 style="margin: 0 0 12px 0; color: #F5F5F5; font-size: 42px;">Save fashion links and inspiration photos in one place.</h1>
+            <p class="muted" style="margin: 0; max-width: 560px;">Add product links, optional images, and notes for the looks or items you want to buy later.</p>
+        </div>
+
+        <div class="info-card">
+            <h3 style="margin: 0 0 15px 0; color: #F5F5F5;">Wishlist Summary</h3>
+            <p><strong>Total Saved:</strong> {{ wishlist_items|length }}</p>
+            <p><strong>Owner:</strong> {{ request.user.username }}</p>
+            <p><strong>Use:</strong> Links, reference photos, notes</p>
+        </div>
+    </div>
+
+    <div class="content-grid">
+        <div class="info-card">
+            <h3 style="margin: 0 0 15px 0; color: #F5F5F5;">Add to Wishlist</h3>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                {% if error %}
+                <p class="error">{{ error }}</p>
+                {% endif %}
+
+                <label for="wishlist-title" style="display: block; margin-top: 8px; font-weight: bold;">Title</label>
+                <input id="wishlist-title" type="text" name="title" placeholder="Example: Brown Leather Jacket" required>
+
+                <label for="wishlist-link" style="display: block; margin-top: 8px; font-weight: bold;">Product Link</label>
+                <input id="wishlist-link" type="url" name="product_link" placeholder="https://example.com/item" required>
+
+                <label for="wishlist-photo" style="display: block; margin-top: 8px; font-weight: bold;">Photo</label>
+                <input id="wishlist-photo" type="file" name="photo" accept="image/*">
+
+                <label for="wishlist-notes" style="display: block; margin-top: 8px; font-weight: bold;">Notes</label>
+                <textarea id="wishlist-notes" name="notes" placeholder="Why you like it, price, color, or styling notes."></textarea>
+
+                <div class="inline-actions">
+                    <button type="submit">Save Wishlist Item</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="info-card">
+            <h3 style="margin: 0 0 15px 0; color: #F5F5F5;">Saved Wishlist</h3>
+            {% if wishlist_items %}
+            <div class="favorites-grid">
+                {% for item in wishlist_items %}
+                <div class="favorite-item">
+                    <span class="favorite-tag">{{ item.created_at|date:'M d' }}</span>
+                    <h4 style="margin: 0 0 8px 0; color: #F5F5F5;">{{ item.title }}</h4>
+                    {% if item.image %}
+                    <img src="{{ item.image.url }}" alt="{{ item.title }}" style="width: 100%; height: 180px; object-fit: cover; border-radius: 12px; margin-bottom: 12px;">
+                    {% endif %}
+                    <p class="muted" style="margin: 0 0 12px 0;">{{ item.notes|default:'No notes added yet.'|truncatechars:110 }}</p>
+                    <a class="button-link" href="{{ item.product_link }}" target="_blank" rel="noopener noreferrer">Open Link</a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="muted" style="margin: 0;">No wishlist items yet. Add a link or image and it will appear here.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

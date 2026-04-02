@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block sidebar %}
+<div class="sidebar-section">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #a76e46 0%, #5e361f 100%); border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 30px;">U</div>
+        <h2 style="margin: 0 0 8px 0; color: #F5F5F5;">{{ request.user.username }}</h2>
+        <p class="muted" style="margin: 0;">Luxury fashion member</p>
+    </div>
+</div>
+
+<div class="sidebar-section">
+    <h3>Menu</h3>
+    <a class="sidebar-link" href="#my-gallery">My Gallery</a>
+    <a class="sidebar-link" href="{% url 'my_fashion' %}">Add Photos</a>
+    <a class="sidebar-link" href="{% url 'favorites' %}">Favorites</a>
+    <a class="sidebar-link" href="{% url 'wishlist' %}">Wishlist</a>
+    <a class="sidebar-link" href="{% url 'logout' %}">Logout</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-content">
+    <div class="info-card" id="my-gallery" style="margin-bottom: 24px;">
+        <h3 style="margin: 0 0 15px 0; color: #F5F5F5;">My Gallery</h3>
+        <p class="muted" style="margin-top: 0;">This page now shows only the pictures you added. Use Upload and Favorites from the top menu for the other sections.</p>
+    </div>
+
+    {% if outfits %}
+    <div class="gallery-grid">
+        {% for outfit in outfits %}
+        <article class="cinema-card">
+            <img src="{{ outfit.image.url }}" alt="{{ outfit.title }}">
+            <div class="cinema-overlay">
+                <div class="cinema-meta">
+                    <span>{{ outfit.created_at|date:'M d, Y' }}</span>
+                    <span>{{ request.user.username }}</span>
+                </div>
+                <h3 style="margin: 0 0 8px 0; color: #F5F5F5; font-size: 28px;">{{ outfit.title }}</h3>
+                <p class="muted" style="margin: 0;">{{ outfit.description|default:'No description added yet.' }}</p>
+                <div class="cinema-actions">
+                    <form method="post" action="{% url 'toggle_favorite' outfit.id %}">
+                        {% csrf_token %}
+                        <button class="heart-button{% if outfit.is_favorite %} is-favorite{% endif %}" type="submit" aria-label="Toggle favorite">
+                            {% if outfit.is_favorite %}♥{% else %}♡{% endif %}
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'delete_outfit' outfit.id %}">
+                        {% csrf_token %}
+                        <button class="delete-button" type="submit">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="info-card empty-state">
+        <h3 style="margin-top: 0; color: #F5F5F5;">Your gallery is waiting for its first look.</h3>
+        <p class="muted">Go to the separate My Fashion page, upload a photo with a title and description, and it will appear here automatically after saving.</p>
+        <a class="button-link" href="{% url 'my_fashion' %}">Add Your First Photo</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

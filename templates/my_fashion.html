@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block sidebar %}
+<div class="sidebar-section">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #a76e46 0%, #5e361f 100%); border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 30px;">U</div>
+        <h2 style="margin: 0 0 8px 0; color: #F5F5F5;">{{ request.user.username }}</h2>
+        <p class="muted" style="margin: 0;">Upload studio</p>
+    </div>
+</div>
+
+<div class="sidebar-section">
+    <h3>Menu</h3>
+    <a class="sidebar-link" href="{% url 'gallery' %}">My Gallery</a>
+    <a class="sidebar-link" href="{% url 'my_fashion' %}">Add Photos</a>
+    <a class="sidebar-link" href="{% url 'favorites' %}">Favorites</a>
+    <a class="sidebar-link" href="{% url 'wishlist' %}">Wishlist</a>
+    <a class="sidebar-link" href="{% url 'logout' %}">Logout</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-content">
+    <div class="hero-panel">
+        <div class="info-card hero-banner">
+            <p style="margin: 0 0 10px 0; color: #d8b79d; text-transform: uppercase; letter-spacing: 0.16em; font-size: 12px;">My Fashion Studio</p>
+            <h1 style="margin: 0 0 12px 0; color: #F5F5F5; font-size: 42px;">Add a new photo to your personal collection.</h1>
+            <p class="muted" style="margin: 0; max-width: 560px;">This is the separate upload interface. Add one image at a time with a title and description, then see it appear in your gallery after saving.</p>
+        </div>
+
+        <div class="info-card">
+            <h3 style="margin: 0 0 15px 0; color: #F5F5F5;">Studio Snapshot</h3>
+            <p><strong>Uploads in Gallery:</strong> {{ outfit_count }}</p>
+            <p><strong>Owner:</strong> {{ request.user.username }}</p>
+            <p><strong>Output:</strong> Cinematic gallery cards</p>
+            <p style="margin-top: 18px;"><a class="button-link" href="{% url 'gallery' %}">Back to Gallery</a></p>
+        </div>
+    </div>
+
+    <div class="content-grid">
+        <div class="info-card">
+            <h3 style="margin: 0 0 15px 0; color: #F5F5F5;">Add Photo</h3>
+            <p class="muted" style="margin-top: 0;">Use this form to save a look into your private fashion gallery.</p>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                {% if error %}
+                <p class="error">{{ error }}</p>
+                {% endif %}
+
+                <div class="upload-box">
+                    <p style="font-size: 18px; color: #F5F5F5;">Choose a fashion photo</p>
+                    <p class="muted">Portraits, outfit shots, and editorial images work great here.</p>
+                    <input type="file" name="photo" accept="image/*" required>
+                </div>
+
+                <label for="photo-title" style="display: block; margin-top: 8px; font-weight: bold;">Title</label>
+                <input id="photo-title" type="text" name="title" placeholder="Example: Midnight Brown Edit" required>
+
+                <label for="photo-description" style="display: block; margin-top: 8px; font-weight: bold;">Description</label>
+                <textarea id="photo-description" name="description" placeholder="Describe the styling mood, fabric story, silhouette, or why this photo belongs in your collection."></textarea>
+
+                <div class="inline-actions">
+                    <button type="submit">Save Photo</button>
+                    <a class="button-link" href="{% url 'gallery' %}">View Gallery</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="info-card">
+            <h3 style="margin: 0 0 15px 0; color: #F5F5F5;">Recent Uploads</h3>
+            {% if recent_outfits %}
+            <div class="favorites-grid">
+                {% for outfit in recent_outfits %}
+                <div class="favorite-item">
+                    <span class="favorite-tag">{{ outfit.created_at|date:'M d' }}</span>
+                    <h4 style="margin: 0 0 8px 0; color: #F5F5F5;">{{ outfit.title }}</h4>
+                    <p class="muted" style="margin: 0;">{{ outfit.description|default:'No description added yet.'|truncatechars:90 }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="muted" style="margin: 0;">No uploads yet. Your first saved image will appear here and in the cinematic gallery.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
