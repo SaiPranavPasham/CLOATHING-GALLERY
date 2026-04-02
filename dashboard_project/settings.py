@@ -1,6 +1,8 @@
 import os
+import importlib.util
 from pathlib import Path
 from tempfile import gettempdir
+from urllib.parse import urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -10,6 +12,28 @@ LOCAL_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 def split_env_list(name, default=''):
     return [item.strip() for item in os.environ.get(name, default).split(',') if item.strip()]
+
+
+def collect_public_urls():
+    urls = []
+    for name in ('APP_URL', 'PUBLIC_URL', 'RAILWAY_STATIC_URL'):
+        value = os.environ.get(name, '').strip()
+        if value:
+            urls.append(value.rstrip('/'))
+
+    railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '').strip()
+    if railway_domain:
+        urls.append(f'https://{railway_domain}')
+
+    return urls
+
+
+def host_from_url(url):
+    parsed = urlparse(url)
+    return parsed.netloc
+
+
+HAS_WHITENOISE = importlib.util.find_spec('whitenoise') is not None
 
 
 # Quick-start development settings - unsuitable for production
@@ -37,6 +61,17 @@ CSRF_TRUSTED_ORIGINS = split_env_list(
     ','.join(default_csrf_trusted_origins),
 )
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+
+for public_url in collect_public_urls():
+    if public_url not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(public_url)
+
+    host = host_from_url(public_url)
+    if host and host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(host)
 
 
 # Application definition
@@ -53,7 +88,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -61,6 +95,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+if HAS_WHITENOISE:
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 ROOT_URLCONF = 'dashboard_project.urls'
 
@@ -129,9 +166,11 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+if HAS_WHITENOISE:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
