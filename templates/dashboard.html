@@ -23,35 +23,89 @@
 <div class="dashboard-content">
     <div class="info-card" id="my-gallery" style="margin-bottom: 24px;">
         <h3 style="margin: 0 0 15px 0; color: #F5F5F5;">My Gallery</h3>
-        <p class="muted" style="margin-top: 0;">This page now shows only the pictures you added. Use Upload and Favorites from the top menu for the other sections.</p>
+        <p class="muted" style="margin-top: 0;">Your uploaded outfits now appear in a sliding photo bar. Use the arrows or the mini previews to move between looks.</p>
     </div>
 
     {% if outfits %}
-    <div class="gallery-grid">
-        {% for outfit in outfits %}
-        <article class="cinema-card">
-            <img src="{{ outfit.image.url }}" alt="{{ outfit.title }}">
-            <div class="cinema-overlay">
-                <div class="cinema-meta">
-                    <span>{{ outfit.created_at|date:'M d, Y' }}</span>
-                    <span>{{ request.user.username }}</span>
-                </div>
-                <h3 style="margin: 0 0 8px 0; color: #F5F5F5; font-size: 28px;">{{ outfit.title }}</h3>
-                <p class="muted" style="margin: 0;">{{ outfit.description|default:'No description added yet.' }}</p>
-                <div class="cinema-actions">
-                    <form method="post" action="{% url 'toggle_favorite' outfit.id %}">
-                        {% csrf_token %}
-                        <button class="heart-button{% if outfit.is_favorite %} is-favorite{% endif %}" type="submit" aria-label="Toggle favorite">
-                            {% if outfit.is_favorite %}♥{% else %}♡{% endif %}
-                        </button>
-                    </form>
-                    <form method="post" action="{% url 'delete_outfit' outfit.id %}">
-                        {% csrf_token %}
-                        <button class="delete-button" type="submit">Delete</button>
-                    </form>
-                </div>
+    <section class="slider-shell">
+        <button class="slider-arrow slider-arrow-left" type="button" data-slider-prev aria-label="Previous photo">
+            <span>&larr;</span>
+        </button>
+        <div class="slider-window">
+            <div class="slider-track" data-slider-track>
+                {% for outfit in outfits %}
+                <article class="cinema-card slider-slide">
+                    <div class="slider-image-wrap">
+                        <div class="slider-image-stage">
+                            <img src="{{ outfit.image.url }}" alt="{{ outfit.title }}">
+                        </div>
+                    </div>
+                    <div class="cinema-overlay">
+                        <p class="slider-kicker">Curated Look {{ forloop.counter }}</p>
+                        <div class="cinema-meta">
+                            <span class="slider-chip">{{ outfit.created_at|date:'M d, Y' }}</span>
+                            <span class="slider-chip">{{ request.user.username }}</span>
+                        </div>
+                        <h3 style="margin: 0 0 8px 0; color: #F5F5F5; font-size: 28px;">{{ outfit.title }}</h3>
+                        <p class="muted" style="margin: 0;">{{ outfit.description|default:'No description added yet.' }}</p>
+                        <div class="cinema-actions">
+                            <form method="post" action="{% url 'toggle_favorite' outfit.id %}">
+                                {% csrf_token %}
+                                <button class="heart-button{% if outfit.is_favorite %} is-favorite{% endif %}" type="submit" aria-label="Toggle favorite">
+                                    {% if outfit.is_favorite %}&#9829;{% else %}&#9825;{% endif %}
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'delete_outfit' outfit.id %}">
+                                {% csrf_token %}
+                                <button class="delete-button" type="submit">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
             </div>
-        </article>
+        </div>
+        <button class="slider-arrow slider-arrow-right" type="button" data-slider-next aria-label="Next photo">
+            <span>&rarr;</span>
+        </button>
+    </section>
+
+    <div class="slider-status-row">
+        <div class="slider-progress">
+            <span class="slider-progress-bar" data-slider-progress></span>
+        </div>
+        <div class="slider-status-bottom">
+            <div class="slider-dots" data-slider-dots>
+                {% for outfit in outfits %}
+                <button
+                    class="slider-dot{% if forloop.first %} is-active{% endif %}"
+                    type="button"
+                    data-slider-dot
+                    data-slide-index="{{ forloop.counter0 }}"
+                    aria-label="Go to slide {{ forloop.counter }}"
+                ></button>
+                {% endfor %}
+            </div>
+            <div class="slider-counter">
+                <span data-slider-current>01</span>
+                <span>/</span>
+                <span>{{ outfits|length|stringformat:"02d" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="slider-thumbs">
+        {% for outfit in outfits %}
+        <button
+            class="slider-thumb{% if forloop.first %} is-active{% endif %}"
+            type="button"
+            data-slider-thumb
+            data-slide-index="{{ forloop.counter0 }}"
+            aria-label="Show {{ outfit.title }}"
+        >
+            <img src="{{ outfit.image.url }}" alt="{{ outfit.title }}">
+            <span>{{ outfit.title }}</span>
+        </button>
         {% endfor %}
     </div>
     {% else %}
@@ -62,4 +116,555 @@
     </div>
     {% endif %}
 </div>
+
+{% if outfits %}
+<style>
+    .slider-shell {
+        position: relative;
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1040px) 52px;
+        gap: 20px;
+        align-items: center;
+        margin-bottom: 18px;
+        justify-content: center;
+    }
+
+    .slider-window {
+        overflow: hidden;
+        padding: 16px 0 22px;
+        border-radius: 34px;
+        perspective: 1600px;
+    }
+
+    .slider-track {
+        position: relative;
+        height: 560px;
+        transform-style: preserve-3d;
+        touch-action: pan-y;
+    }
+
+    .slider-slide {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: min(100%, 900px);
+        margin: 0;
+        transform-origin: center center;
+    }
+
+    .slider-slide.cinema-card {
+        min-height: 520px;
+        max-width: 1040px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+        border-radius: 34px;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at top left, rgba(214, 163, 126, 0.08), transparent 34%),
+            linear-gradient(180deg, #1c1410 0%, #0f0a07 100%);
+        border: 1px solid rgba(222, 185, 154, 0.12);
+        box-shadow:
+            0 30px 70px rgba(0, 0, 0, 0.28),
+            0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+        opacity: 1;
+        filter: saturate(1);
+        transition:
+            transform 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+            opacity 0.6s ease,
+            filter 0.6s ease,
+            box-shadow 0.5s ease,
+            border-color 0.5s ease;
+    }
+
+    .slider-slide.is-active {
+        box-shadow:
+            0 34px 78px rgba(0, 0, 0, 0.3),
+            0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+    }
+
+    .slider-slide.is-left,
+    .slider-slide.is-right {
+        opacity: 0.52;
+        filter: saturate(0.7) blur(0.2px);
+    }
+
+    .slider-slide.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .slider-image-wrap {
+        position: relative;
+        min-height: 520px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 34px;
+        background:
+            radial-gradient(circle at top left, rgba(236, 198, 167, 0.12), transparent 30%),
+            linear-gradient(180deg, #241913 0%, #17110d 100%);
+        border-right: 1px solid rgba(222, 185, 154, 0.12);
+    }
+
+    .slider-image-wrap::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(0, 0, 0, 0.05) 100%);
+        pointer-events: none;
+    }
+
+    .slider-image-stage {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        min-height: 430px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        border-radius: 28px;
+        background:
+            linear-gradient(180deg, rgba(255, 248, 241, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%),
+            rgba(9, 6, 4, 0.34);
+        border: 1px solid rgba(227, 191, 162, 0.1);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.05),
+            0 18px 36px rgba(0, 0, 0, 0.16);
+        transition: box-shadow 0.45s ease;
+    }
+
+    .slider-slide.is-active .slider-image-stage {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.06),
+            0 22px 40px rgba(0, 0, 0, 0.18);
+    }
+
+    .slider-slide img {
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 390px;
+        object-fit: contain;
+        object-position: center;
+        display: block;
+        border-radius: 18px;
+        background: #120d09;
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18);
+        transition: opacity 0.35s ease;
+    }
+
+    .slider-arrow {
+        width: 52px;
+        height: 52px;
+        padding: 0;
+        border-radius: 50%;
+        background: linear-gradient(180deg, rgba(32, 23, 17, 0.96) 0%, rgba(18, 13, 9, 0.98) 100%);
+        border: 1px solid rgba(218, 167, 128, 0.18);
+        color: var(--text-main);
+        font-size: 18px;
+        line-height: 1;
+        box-shadow:
+            0 18px 28px rgba(0, 0, 0, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    .slider-arrow:hover {
+        transform: translateY(-2px) scale(1.03);
+        border-color: rgba(224, 180, 146, 0.3);
+        box-shadow:
+            0 22px 34px rgba(0, 0, 0, 0.22),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .slider-arrow span {
+        display: inline-block;
+        transform: translateY(-1px);
+    }
+
+    .slider-status-row {
+        max-width: 1040px;
+        margin: 0 auto 18px;
+    }
+
+    .slider-progress {
+        height: 4px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.08);
+        margin-bottom: 12px;
+    }
+
+    .slider-progress-bar {
+        display: block;
+        height: 100%;
+        width: 0;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #d7a47a 0%, #8e5433 100%);
+        transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .slider-dots {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    .slider-status-bottom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    .slider-dot {
+        width: 8px;
+        height: 8px;
+        padding: 0;
+        border: none;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.24);
+    }
+
+    .slider-dot.is-active {
+        width: 24px;
+        background: linear-gradient(90deg, #d7a47a 0%, #8e5433 100%);
+    }
+
+    .slider-counter {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-soft);
+    }
+
+    .slider-thumbs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+        gap: 12px;
+        max-width: 1040px;
+        margin: 0 auto;
+    }
+
+    .slider-thumb {
+        width: 100%;
+        padding: 7px;
+        border-radius: 18px;
+        border: 1px solid rgba(218, 167, 128, 0.14);
+        background: linear-gradient(180deg, rgba(33, 24, 18, 0.96) 0%, rgba(18, 13, 10, 0.98) 100%);
+        text-align: left;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .slider-thumb:hover {
+        transform: translateY(-2px);
+    }
+
+    .slider-thumb img {
+        width: 100%;
+        height: 68px;
+        object-fit: cover;
+        display: block;
+        border-radius: 12px;
+        margin-bottom: 6px;
+    }
+
+    .slider-thumb span {
+        display: block;
+        color: var(--text-main);
+        font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .slider-thumb.is-active {
+        transform: translateY(-2px);
+        border-color: rgba(218, 167, 128, 0.42);
+        box-shadow:
+            0 18px 30px rgba(0, 0, 0, 0.18),
+            0 0 0 1px rgba(219, 174, 139, 0.08);
+    }
+
+    .slider-slide .cinema-overlay {
+        position: static;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background:
+            linear-gradient(180deg, rgba(18, 13, 9, 0.98) 0%, rgba(11, 8, 6, 0.98) 100%);
+        padding: 38px 34px;
+    }
+
+    .slider-slide .cinema-meta {
+        margin-bottom: 14px;
+        font-size: 12px;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    .slider-slide .cinema-actions {
+        margin-top: 18px;
+    }
+
+    .slider-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 11px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(218, 167, 128, 0.14);
+    }
+
+    .slider-kicker {
+        margin: 0 0 14px;
+        font-size: 11px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: #c6a388;
+    }
+
+    .slider-slide .delete-button,
+    .slider-slide .heart-button {
+        min-height: 38px;
+    }
+
+    .slider-slide h3 {
+        font-size: 34px !important;
+        line-height: 1.15;
+    }
+
+    .slider-slide .muted {
+        font-size: 15px;
+        line-height: 1.7;
+        color: #d7c4b2;
+    }
+
+    @media (max-width: 768px) {
+        .slider-shell {
+            grid-template-columns: 1fr;
+        }
+
+        .slider-track {
+            height: auto;
+        }
+
+        .slider-arrow {
+            position: absolute;
+            top: 130px;
+            z-index: 2;
+        }
+
+        .slider-arrow-left {
+            left: 10px;
+        }
+
+        .slider-arrow-right {
+            right: 10px;
+        }
+
+        .slider-slide.cinema-card {
+            position: relative;
+            left: auto;
+            min-height: auto;
+            max-width: 100%;
+            grid-template-columns: 1fr;
+            border-radius: 24px;
+        }
+
+        .slider-image-wrap {
+            min-height: 260px;
+            padding: 18px;
+            border-right: none;
+            border-bottom: 1px solid rgba(222, 185, 154, 0.12);
+        }
+
+        .slider-image-stage {
+            min-height: 220px;
+            padding: 14px;
+        }
+
+        .slider-slide .cinema-overlay {
+            position: static;
+            background: linear-gradient(180deg, rgba(21, 15, 11, 0.98) 0%, rgba(12, 9, 7, 0.98) 100%);
+            padding: 18px 16px;
+        }
+
+        .slider-status-row {
+            max-width: 100%;
+            padding: 0 8px;
+        }
+
+        .slider-status-bottom {
+            align-items: center;
+        }
+
+        .slider-thumbs {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            max-width: 100%;
+        }
+
+        .slider-slide h3 {
+            font-size: 22px !important;
+            line-height: 1.2;
+        }
+
+        .slider-slide .muted {
+            display: block;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .slider-slide .cinema-actions {
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .slider-slide .delete-button {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+
+        .slider-slide .heart-button {
+            width: 38px;
+            height: 38px;
+        }
+    }
+
+</style>
+
+<script>
+    (function () {
+        const track = document.querySelector('[data-slider-track]');
+        if (!track) {
+            return;
+        }
+
+        const slides = Array.from(track.querySelectorAll('.slider-slide'));
+        const prevButton = document.querySelector('[data-slider-prev]');
+        const nextButton = document.querySelector('[data-slider-next]');
+        const thumbs = Array.from(document.querySelectorAll('[data-slider-thumb]'));
+        const dots = Array.from(document.querySelectorAll('[data-slider-dot]'));
+        const progressBar = document.querySelector('[data-slider-progress]');
+        const currentCounter = document.querySelector('[data-slider-current]');
+        let currentIndex = 0;
+        const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
+        function getWrappedOffset(index) {
+            let offset = index - currentIndex;
+            const half = Math.floor(slides.length / 2);
+
+            if (offset > half) {
+                offset -= slides.length;
+            }
+            if (offset < -half) {
+                offset += slides.length;
+            }
+
+            return offset;
+        }
+
+        function applyDesktopTransforms() {
+            slides.forEach((slide, slideIndex) => {
+                const offset = getWrappedOffset(slideIndex);
+                slide.classList.remove('is-active', 'is-left', 'is-right', 'is-hidden');
+
+                if (offset === 0) {
+                    slide.classList.add('is-active');
+                    slide.style.transform = 'translateX(-50%) translateZ(0px) rotateY(0deg) scale(1)';
+                    slide.style.zIndex = '5';
+                } else if (offset === -1) {
+                    slide.classList.add('is-left');
+                    slide.style.transform = 'translateX(calc(-50% - 290px)) translateZ(-180px) rotateY(26deg) scale(0.88)';
+                    slide.style.zIndex = '4';
+                } else if (offset === 1) {
+                    slide.classList.add('is-right');
+                    slide.style.transform = 'translateX(calc(-50% + 290px)) translateZ(-180px) rotateY(-26deg) scale(0.88)';
+                    slide.style.zIndex = '4';
+                } else if (offset === -2) {
+                    slide.classList.add('is-hidden');
+                    slide.style.transform = 'translateX(calc(-50% - 480px)) translateZ(-320px) rotateY(34deg) scale(0.76)';
+                    slide.style.zIndex = '2';
+                } else if (offset === 2) {
+                    slide.classList.add('is-hidden');
+                    slide.style.transform = 'translateX(calc(-50% + 480px)) translateZ(-320px) rotateY(-34deg) scale(0.76)';
+                    slide.style.zIndex = '2';
+                } else {
+                    slide.classList.add('is-hidden');
+                    slide.style.transform = 'translateX(-50%) translateZ(-420px) scale(0.68)';
+                    slide.style.zIndex = '1';
+                }
+            });
+        }
+
+        function applyMobileTransforms() {
+            slides.forEach((slide, slideIndex) => {
+                slide.classList.toggle('is-active', slideIndex === currentIndex);
+                slide.classList.remove('is-left', 'is-right', 'is-hidden');
+                slide.style.transform = '';
+                slide.style.zIndex = slideIndex === currentIndex ? '2' : '1';
+                slide.style.display = slideIndex === currentIndex ? 'grid' : 'none';
+            });
+        }
+
+        function updateSlider(index) {
+            currentIndex = (index + slides.length) % slides.length;
+            if (progressBar) {
+                progressBar.style.width = `${((currentIndex + 1) / slides.length) * 100}%`;
+            }
+            if (currentCounter) {
+                currentCounter.textContent = String(currentIndex + 1).padStart(2, '0');
+            }
+
+            thumbs.forEach((thumb, thumbIndex) => {
+                thumb.classList.toggle('is-active', thumbIndex === currentIndex);
+            });
+
+            dots.forEach((dot, dotIndex) => {
+                dot.classList.toggle('is-active', dotIndex === currentIndex);
+            });
+
+            if (isMobile()) {
+                applyMobileTransforms();
+            } else {
+                applyDesktopTransforms();
+            }
+        }
+
+        prevButton.addEventListener('click', function () {
+            updateSlider(currentIndex - 1);
+        });
+
+        nextButton.addEventListener('click', function () {
+            updateSlider(currentIndex + 1);
+        });
+
+        thumbs.forEach((thumb) => {
+            thumb.addEventListener('click', function () {
+                updateSlider(Number(thumb.dataset.slideIndex));
+            });
+        });
+
+        dots.forEach((dot) => {
+            dot.addEventListener('click', function () {
+                updateSlider(Number(dot.dataset.slideIndex));
+            });
+        });
+
+        window.addEventListener('resize', function () {
+            updateSlider(currentIndex);
+        });
+
+        updateSlider(0);
+    }());
+</script>
+{% endif %}
 {% endblock %}

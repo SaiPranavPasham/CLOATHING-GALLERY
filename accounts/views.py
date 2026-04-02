@@ -9,7 +9,7 @@ from .models import Outfit, WishlistItem
 
 def register_view(request):
     if request.user.is_authenticated:
-        return redirect('gallery')
+        return redirect('dashboard')
 
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
@@ -17,16 +17,19 @@ def register_view(request):
         password = request.POST.get('password', '')
 
         if not username or not email or not password:
-            messages.error(request, 'All fields are required')
-            return redirect('register')
+            error = 'All fields are required'
+            messages.error(request, error)
+            return render(request, 'register.html', {'error': error})
 
         if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already exists')
-            return redirect('register')
+            error = 'Username already exists'
+            messages.error(request, error)
+            return render(request, 'register.html', {'error': error})
 
         if User.objects.filter(email=email).exists():
-            messages.error(request, 'Email already exists')
-            return redirect('register')
+            error = 'Email already exists'
+            messages.error(request, error)
+            return render(request, 'register.html', {'error': error})
 
         User.objects.create_user(username=username, email=email, password=password)
         messages.success(request, 'Account created successfully')
@@ -37,7 +40,7 @@ def register_view(request):
 
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect('gallery')
+        return redirect('dashboard')
 
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
@@ -47,9 +50,11 @@ def login_view(request):
         if user is not None:
             login(request, user)
             messages.success(request, 'Login successful')
-            return redirect('gallery')
+            return redirect('dashboard')
 
-        messages.error(request, 'Invalid credentials')
+        error = 'Invalid credentials'
+        messages.error(request, error)
+        return render(request, 'login.html', {'error': error})
 
     return render(request, 'login.html')
 
@@ -123,7 +128,7 @@ def my_fashion_view(request):
                 image=image,
             )
             messages.success(request, 'Photo added to your gallery')
-            return redirect('gallery')
+            return redirect('dashboard')
 
     context = {
         'error': error,
@@ -152,7 +157,7 @@ def delete_outfit_view(request, outfit_id):
         outfit.delete()
         messages.success(request, 'Photo deleted from your gallery')
 
-    return redirect('gallery')
+    return redirect('dashboard')
 
 
 def logout_view(request):
