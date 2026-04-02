@@ -8,6 +8,10 @@ LOCAL_DATA_DIR = Path(gettempdir()) / 'dashboard_project'
 LOCAL_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def split_env_list(name, default=''):
+    return [item.strip() for item in os.environ.get(name, default).split(',') if item.strip()]
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -18,14 +22,21 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.environ.get(
-        'ALLOWED_HOSTS',
-        'localhost,127.0.0.1,testserver,.railway.app',
-    ).split(',')
-    if host.strip()
+ALLOWED_HOSTS = split_env_list(
+    'ALLOWED_HOSTS',
+    'localhost,127.0.0.1,testserver,.railway.app',
+)
+
+default_csrf_trusted_origins = [
+    'http://localhost',
+    'http://127.0.0.1',
+    'https://*.railway.app',
 ]
+CSRF_TRUSTED_ORIGINS = split_env_list(
+    'CSRF_TRUSTED_ORIGINS',
+    ','.join(default_csrf_trusted_origins),
+)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition
