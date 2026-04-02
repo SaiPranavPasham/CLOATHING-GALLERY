@@ -1,1 +1,2 @@
-web: sh start.sh
+Local development uses:
+python manage.py runserver

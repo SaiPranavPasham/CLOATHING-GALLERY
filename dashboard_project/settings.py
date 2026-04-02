@@ -1,48 +1,8 @@
 import os
-import importlib.util
 from pathlib import Path
-from tempfile import gettempdir
-from urllib.parse import urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-LOCAL_DATA_DIR = Path(gettempdir()) / 'dashboard_project'
-LOCAL_DATA_DIR.mkdir(parents=True, exist_ok=True)
-
-
-def split_env_list(name, default=''):
-    return [item.strip() for item in os.environ.get(name, default).split(',') if item.strip()]
-
-
-def normalize_origin(value):
-    value = value.strip().rstrip('/')
-    if not value:
-        return ''
-    if '://' not in value:
-        return f'https://{value}'
-    return value
-
-
-def collect_public_urls():
-    urls = []
-    for name in ('APP_URL', 'PUBLIC_URL', 'RAILWAY_STATIC_URL'):
-        value = os.environ.get(name, '').strip()
-        if value:
-            urls.append(normalize_origin(value))
-
-    railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '').strip()
-    if railway_domain:
-        urls.append(normalize_origin(railway_domain))
-
-    return urls
-
-
-def host_from_url(url):
-    parsed = urlparse(url)
-    return parsed.netloc
-
-
-HAS_WHITENOISE = importlib.util.find_spec('whitenoise') is not None
 
 
 # Quick-start development settings - unsuitable for production
@@ -53,37 +13,18 @@ SECRET_KEY = os.environ.get(
     'django-insecure-0ud_1bdno9er**@47*b9wz0kht53*0pnhd_br&5zmd#(5bzp@+',
 )
 
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = split_env_list(
-    'ALLOWED_HOSTS',
-    'localhost,127.0.0.1,testserver,.railway.app',
-)
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'testserver',
+]
 
-default_csrf_trusted_origins = [
+CSRF_TRUSTED_ORIGINS = [
     'http://localhost',
     'http://127.0.0.1',
-    'https://*.railway.app',
 ]
-CSRF_TRUSTED_ORIGINS = [
-    normalize_origin(origin)
-    for origin in split_env_list(
-        'CSRF_TRUSTED_ORIGINS',
-        ','.join(default_csrf_trusted_origins),
-    )
-]
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-USE_X_FORWARDED_HOST = True
-CSRF_COOKIE_SECURE = not DEBUG
-SESSION_COOKIE_SECURE = not DEBUG
-
-for public_url in collect_public_urls():
-    if public_url not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(public_url)
-
-    host = host_from_url(public_url)
-    if host and host not in ALLOWED_HOSTS:
-        ALLOWED_HOSTS.append(host)
 
 
 # Application definition
@@ -107,9 +48,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
-if HAS_WHITENOISE:
-    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 ROOT_URLCONF = 'dashboard_project.urls'
 
@@ -137,7 +75,7 @@ WSGI_APPLICATION = 'dashboard_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': LOCAL_DATA_DIR / 'db.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -177,12 +115,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-
-if HAS_WHITENOISE:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
